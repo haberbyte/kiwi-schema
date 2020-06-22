@@ -5,9 +5,9 @@ Gem::Specification.new do |spec|
   spec.version       = Kiwi::VERSION
   spec.authors       = ["Jan Habermann"]
   spec.email         = ["jan@habermann.io"]
-  spec.summary       = %q{Kiwi encoding/decoding in ruby}
-  spec.description   = %q{Kiwi encoding/decoding in ruby}
-  spec.homepage      = "https://www.github/com/haberbyte/kiwi-schema"
+  spec.summary       = %q{Kiwi message format implementation for ruby}
+  spec.description   = %q{Kiwi is a schema-based binary format for efficiently encoding trees of data.}
+  spec.homepage      = "https://github.com/haberbyte/kiwi-schema"
   spec.required_ruby_version = Gem::Requirement.new(">= 2.3.0")
   spec.metadata["homepage_uri"] = spec.homepage
   spec.files = Dir.chdir(File.expand_path('..', __FILE__)) do
