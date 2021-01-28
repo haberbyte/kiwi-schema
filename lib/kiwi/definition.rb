@@ -26,8 +26,6 @@ module Kiwi
     def field(name)
       if idx = field_name_to_index[name]
         fields[idx]
-      else
-        nil
       end
     end
   end

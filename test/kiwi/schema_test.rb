@@ -43,7 +43,7 @@ class Kiwi::SchemaTest < Minitest::Test
     ])
   end
 
-  def from_binary_test
+  def test_from_binary
     schema_bytes = [1, 65, 66, 67, 0, 2, 1, 120, 121, 122, 0, 5, 1, 1]
     schema = Kiwi::Schema.from_binary(schema_bytes)
     definitions = schema.definitions
@@ -60,7 +60,7 @@ class Kiwi::SchemaTest < Minitest::Test
     assert schema.respond_to?(:decode_abc)
   end
 
-  def encode_test
+  def test_encode
     assert_equal @schema.encode(0, "FOO"), [100]
     assert_equal @schema.encode(0, "BAR"), [200, 1]
     assert_equal @schema.encode(Kiwi::Field::TYPE_BOOL, false), [0]
@@ -95,6 +95,12 @@ class Kiwi::SchemaTest < Minitest::Test
       { "v_enum" => ["FOO"], "v_message" => {} }
     ] }), [17, 2, 1, 200, 1, 0, 1, 100, 0, 0]
 
+    # Encode the same message with additional unknown field
+    assert_equal @schema.encode(2, { "a_struct" => [
+      { "v_enum" => ["BAR"], "v_message" => {} },
+      { "v_enum" => ["FOO"], "v_message" => {} }
+    ], "unkown" => "something" }), [17, 2, 1, 200, 1, 0, 1, 100, 0, 0]
+
     assert_equal @schema.encode(2, { "a_message" => [
       { "a_struct" => [
         { "v_enum" => ["BAR"], "v_message" => {} },
@@ -103,7 +109,7 @@ class Kiwi::SchemaTest < Minitest::Test
     ] }), [18, 1, 17, 2, 1, 200, 1, 0, 1, 100, 0, 0, 0]
   end
 
-  def decode_test
+  def test_decode
     assert_raises { @schema.decode(0, [0]) }
     assert_equal @schema.decode(0, [100]), "FOO"
     assert_equal @schema.decode(0, [200, 1]), "BAR"

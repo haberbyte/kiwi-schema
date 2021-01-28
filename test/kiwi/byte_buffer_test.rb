@@ -5,7 +5,7 @@ require "test_helper"
 require "kiwi"
 
 class Kiwi::ByteBufferTest < Minitest::Test
-  def read_var_float_test
+  def test_read_var_float
     assert_raises { read_var_float([]) }
     assert_equal read_var_float([0]), 0.0
     assert_equal read_var_float([133, 242, 210, 237]).round(3), 123.456
@@ -19,7 +19,7 @@ class Kiwi::ByteBufferTest < Minitest::Test
     assert read_var_float([255, 0, 0, 128]).nan?
   end
 
-  def read_string_test
+  def test_read_string
     assert_raises { read_string([]) }
     assert_equal read_string([0]), ""
     assert_raises { read_string([97]) }
@@ -108,7 +108,6 @@ class Kiwi::ByteBufferTest < Minitest::Test
   end
 
   private
-
     def byte_buffer(bytes)
       Kiwi::ByteBuffer.new(bytes)
     end
