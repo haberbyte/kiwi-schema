@@ -155,9 +155,8 @@ module Kiwi
               end
             end
           when Definition::KIND_MESSAGE
-            [*value].each do |field_name, field_value|
-              field = definition.field(field_name)
-              if !field.nil?
+            definition.fields.each do |field|
+              if !(field_value = value[field.name]).nil?
                 byte_buffer.write_var_uint(field.value)
                 encode_value(field, field_value, byte_buffer)
               end

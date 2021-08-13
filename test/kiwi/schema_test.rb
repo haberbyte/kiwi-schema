@@ -18,8 +18,8 @@ class Kiwi::SchemaTest < Minitest::Test
       ]),
 
       Kiwi::Definition.new(name: "Message", kind: Kiwi::Definition::KIND_MESSAGE, fields: [
-        Kiwi::Field.new(name: "v_enum", type_id: 0, is_array: true, value: 0),
-        Kiwi::Field.new(name: "v_message", type_id: 2, is_array: false, value: 0),
+        # Kiwi::Field.new(name: "v_enum", type_id: 0, is_array: true, value: 0),
+        # Kiwi::Field.new(name: "v_message", type_id: 2, is_array: false, value: 0),
         Kiwi::Field.new(name: "v_bool", type_id: Kiwi::Field::TYPE_BOOL, is_array: false, value: 1),
         Kiwi::Field.new(name: "v_byte", type_id: Kiwi::Field::TYPE_BYTE, is_array: false, value: 2),
         Kiwi::Field.new(name: "v_int", type_id: Kiwi::Field::TYPE_INT, is_array: false, value: 3),
@@ -41,6 +41,13 @@ class Kiwi::SchemaTest < Minitest::Test
         Kiwi::Field.new(name: "a_message", type_id: 2, is_array: true, value: 18),
       ])
     ])
+  end
+
+  def test_encode_order
+    expected_bytes = [1, 1, 3, 246, 1, 0]
+
+    assert_equal @schema.encode_message({ "v_bool" => true, "v_int" => 123 }), expected_bytes
+    assert_equal @schema.encode_message({ "v_int" => 123, "v_bool" => true }), expected_bytes
   end
 
   def test_from_binary
