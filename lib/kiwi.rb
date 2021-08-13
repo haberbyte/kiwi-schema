@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module Kiwi
-  VERSION = "0.1.3"
+  VERSION = "0.1.4"
 
   autoload :ByteBuffer, "kiwi/byte_buffer"
   autoload :Definition, "kiwi/definition"
