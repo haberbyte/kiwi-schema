@@ -17,5 +17,9 @@ module Kiwi
       @is_array = is_array
       @value = value
     end
+
+    def type
+      @type_id
+    end
   end
 end

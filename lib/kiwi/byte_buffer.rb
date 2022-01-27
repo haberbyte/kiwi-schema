@@ -5,6 +5,8 @@ module Kiwi
     attr_reader :data
     attr_reader :index
 
+    alias_method :bytes, :data
+
     def initialize(data = [])
       @data = data
       @index = 0
@@ -18,6 +20,10 @@ module Kiwi
         @index += 1
         value
       end
+    end
+
+    def read_byte_array
+      read_bytes(read_var_uint)
     end
 
     def read_bytes(len)
@@ -88,6 +94,11 @@ module Kiwi
 
     def write_byte(value)
       data.push(value & 255)
+    end
+
+    def write_byte_array(value)
+      write_var_uint(value.length)
+      data.push(*value)
     end
 
     # Write a variable-length signed 32-bit integer to the end of the buffer.

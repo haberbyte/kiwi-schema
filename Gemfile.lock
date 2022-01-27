@@ -1,12 +1,12 @@
 PATH
   remote: .
   specs:
-    kiwi-schema (0.1.4)
+    kiwi-schema (0.2.0)
 
 GEM
   remote: https://rubygems.org/
   specs:
-    minitest (5.14.4)
+    minitest (5.15.0)
     rake (12.3.3)
 
 PLATFORMS

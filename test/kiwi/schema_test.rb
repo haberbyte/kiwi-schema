@@ -6,7 +6,7 @@ require "kiwi"
 
 class Kiwi::SchemaTest < Minitest::Test
   def setup
-    @schema = Kiwi::Schema.new(defs: [
+    @schema = Kiwi::Schema.new([
       Kiwi::Definition.new(name: "Enum", kind: Kiwi::Definition::KIND_ENUM, fields: [
         Kiwi::Field.new(name: "FOO", type_id: 0, is_array: false, value: 100),
         Kiwi::Field.new(name: "BAR", type_id: 0, is_array: false, value: 200)
@@ -18,8 +18,6 @@ class Kiwi::SchemaTest < Minitest::Test
       ]),
 
       Kiwi::Definition.new(name: "Message", kind: Kiwi::Definition::KIND_MESSAGE, fields: [
-        # Kiwi::Field.new(name: "v_enum", type_id: 0, is_array: true, value: 0),
-        # Kiwi::Field.new(name: "v_message", type_id: 2, is_array: false, value: 0),
         Kiwi::Field.new(name: "v_bool", type_id: Kiwi::Field::TYPE_BOOL, is_array: false, value: 1),
         Kiwi::Field.new(name: "v_byte", type_id: Kiwi::Field::TYPE_BYTE, is_array: false, value: 2),
         Kiwi::Field.new(name: "v_int", type_id: Kiwi::Field::TYPE_INT, is_array: false, value: 3),
@@ -46,8 +44,8 @@ class Kiwi::SchemaTest < Minitest::Test
   def test_encode_order
     expected_bytes = [1, 1, 3, 246, 1, 0]
 
-    assert_equal @schema.encode_message({ "v_bool" => true, "v_int" => 123 }), expected_bytes
-    assert_equal @schema.encode_message({ "v_int" => 123, "v_bool" => true }), expected_bytes
+    assert_equal expected_bytes, @schema.encode_message({ "v_bool" => true, "v_int" => 123 }).bytes
+    assert_equal expected_bytes, @schema.encode_message({ "v_int" => 123, "v_bool" => true }).bytes
   end
 
   def test_from_binary
@@ -55,96 +53,70 @@ class Kiwi::SchemaTest < Minitest::Test
     schema = Kiwi::Schema.from_binary(schema_bytes)
     definitions = schema.definitions
 
-    assert_equal definitions.length, 1
-    assert_equal definitions.first.name, "ABC"
-    assert_equal definitions.first.kind, Kiwi::Definition::KIND_MESSAGE
-    assert_equal definitions.first.fields.first.name, "xyz"
-    assert_equal definitions.first.fields.first.type_id, Kiwi::Field::TYPE_INT
-    assert_equal definitions.first.fields.first.is_array, true
-    assert_equal definitions.first.fields.first.value, 1
+    assert_equal 1, definitions.length
+    assert_equal "ABC", definitions.first.name
+    assert_equal Kiwi::Definition::KIND_MESSAGE, definitions.first.kind
+    assert_equal "xyz", definitions.first.fields.first.name
+    assert_equal Kiwi::Field::TYPE_INT, definitions.first.fields.first.type_id
+    assert_equal true, definitions.first.fields.first.is_array
+    assert_equal 1, definitions.first.fields.first.value
 
     assert schema.respond_to?(:encode_abc)
     assert schema.respond_to?(:decode_abc)
   end
 
   def test_encode
-    assert_equal @schema.encode(0, "FOO"), [100]
-    assert_equal @schema.encode(0, "BAR"), [200, 1]
-    assert_equal @schema.encode(Kiwi::Field::TYPE_BOOL, false), [0]
-    assert_equal @schema.encode(Kiwi::Field::TYPE_BOOL, true), [1]
-    assert_equal @schema.encode(Kiwi::Field::TYPE_BOOL, nil), [0]
-    assert_equal @schema.encode(Kiwi::Field::TYPE_BYTE, 255), [255]
-    assert_equal @schema.encode(Kiwi::Field::TYPE_INT, -1), [1]
-    assert_equal @schema.encode(Kiwi::Field::TYPE_UINT, 1), [1]
-    assert_equal @schema.encode(Kiwi::Field::TYPE_FLOAT, 0.5), [126, 0, 0, 0]
-    assert_equal @schema.encode(Kiwi::Field::TYPE_STRING, "🍕"), [240, 159, 141, 149, 0]
+    assert_equal([2, 100, 200, 1, 6, 240, 159, 141, 149, 0, 0],
+      @schema.encode_struct({
+        "v_enum" => ["FOO", "BAR"],
+        "v_message" => {
+          "v_string" => "🍕"
+        }
+      }).bytes)
 
-    assert_equal @schema.encode(1, {
-      "v_enum" => ["FOO", "BAR"],
-      "v_message" => {
-        "v_string" => "🍕"
-      }
-    }), [2, 100, 200, 1, 6, 240, 159, 141, 149, 0, 0]
+    assert_equal @schema.encode_message({ "v_bool" => false }).bytes, [1, 0, 0]
+    assert_equal @schema.encode_message({ "v_bool" => true }).bytes, [1, 1, 0]
+    assert_equal @schema.encode_message({ "v_byte" => 255 }).bytes, [2, 255, 0]
+    assert_equal @schema.encode_message({ "v_int" => -1 }).bytes, [3, 1, 0]
+    assert_equal @schema.encode_message({ "v_uint" => 1 }).bytes, [4, 1, 0]
+    assert_equal @schema.encode_message({ "v_float" => 0.0 }).bytes, [5, 0, 0]
+    assert_equal @schema.encode_message({ "v_string" => "" }).bytes, [6, 0, 0]
+    assert_equal @schema.encode_message({ "v_enum" => "FOO" }).bytes, [7, 100, 0]
+    assert_equal @schema.encode_message({ "v_struct" => { "v_enum" => [], "v_message" => {} } }).bytes, [8, 0, 0, 0]
+    assert_equal @schema.encode_message({ "v_message" => {} }).bytes, [9, 0, 0]
 
-    assert_equal @schema.encode(2, { "v_bool" => false }), [1, 0, 0]
-    assert_equal @schema.encode(2, { "v_bool" => true }), [1, 1, 0]
-    assert_equal @schema.encode(2, { "v_byte" => 255 }), [2, 255, 0]
-    assert_equal @schema.encode(2, { "v_int" => -1 }), [3, 1, 0]
-    assert_equal @schema.encode(2, { "v_uint" => 1 }), [4, 1, 0]
-    assert_equal @schema.encode(2, { "v_float" => 0.0 }), [5, 0, 0]
-    assert_equal @schema.encode(2, { "v_string" => "" }), [6, 0, 0]
-    assert_equal @schema.encode(2, { "v_enum" => "FOO" }), [7, 100, 0]
-    assert_equal @schema.encode(2, { "v_struct" => { "v_enum" => [], "v_message" => {} } }), [8, 0, 0, 0]
-    assert_equal @schema.encode(2, { "v_message" => {} }), [9, 0, 0]
-
-    assert_equal @schema.encode(2, { "a_struct" => [
+    assert_equal @schema.encode_message({ "a_struct" => [
       { "v_enum" => ["BAR"], "v_message" => {} },
       { "v_enum" => ["FOO"], "v_message" => {} }
-    ] }), [17, 2, 1, 200, 1, 0, 1, 100, 0, 0]
+    ] }).bytes, [17, 2, 1, 200, 1, 0, 1, 100, 0, 0]
 
     # Encode the same message with additional unknown field
-    assert_equal @schema.encode(2, { "a_struct" => [
+    assert_equal @schema.encode_message({ "a_struct" => [
       { "v_enum" => ["BAR"], "v_message" => {} },
       { "v_enum" => ["FOO"], "v_message" => {} }
-    ], "unkown" => "something" }), [17, 2, 1, 200, 1, 0, 1, 100, 0, 0]
+    ], "unkown" => "something" }).bytes, [17, 2, 1, 200, 1, 0, 1, 100, 0, 0]
 
-    assert_equal @schema.encode(2, { "a_message" => [
+    assert_equal @schema.encode_message({ "a_message" => [
       { "a_struct" => [
         { "v_enum" => ["BAR"], "v_message" => {} },
         { "v_enum" => ["FOO"], "v_message" => {} }
       ] }
-    ] }), [18, 1, 17, 2, 1, 200, 1, 0, 1, 100, 0, 0, 0]
+    ] }).bytes, [18, 1, 17, 2, 1, 200, 1, 0, 1, 100, 0, 0, 0]
   end
 
   def test_decode
-    assert_raises { @schema.decode(0, [0]) }
-    assert_equal @schema.decode(0, [100]), "FOO"
-    assert_equal @schema.decode(0, [200, 1]), "BAR"
-    assert_equal @schema.decode(Kiwi::Field::TYPE_BOOL, [0]), false
-    assert_equal @schema.decode(Kiwi::Field::TYPE_BOOL, [1]), true
-    assert_equal @schema.decode(Kiwi::Field::TYPE_BOOL, [2]), false # maybe expect error?
-    assert_equal @schema.decode(Kiwi::Field::TYPE_BYTE, [255]), 255
-    assert_equal @schema.decode(Kiwi::Field::TYPE_INT, [1]), -1
-    assert_equal @schema.decode(Kiwi::Field::TYPE_UINT, [1]), 1
-    assert_equal @schema.decode(Kiwi::Field::TYPE_FLOAT, [126, 0, 0, 0]), 0.5
-    assert_equal @schema.decode(Kiwi::Field::TYPE_STRING, [240, 159, 141, 149, 0]), "🍕"
+    assert_raises { @schema.decode_enum([0]) }
 
-    assert_equal @schema.decode(1, [2, 100, 200, 1, 6, 240, 159, 141, 149, 0, 0]), {
-      "v_enum" => ["FOO", "BAR"],
-      "v_message" => {
-        "v_string" => "🍕"
-      }
-    }
-
-    assert_equal @schema.decode(2, [1, 0, 0]), { "v_bool" => false }
-    assert_equal @schema.decode(2, [1, 1, 0]), { "v_bool" => true }
-    assert_equal @schema.decode(2, [2, 255, 0]), { "v_byte" => 255 }
-    assert_equal @schema.decode(2, [3, 1, 0]), { "v_int" => -1 }
-    assert_equal @schema.decode(2, [4, 1, 0]), { "v_uint" => 1 }
-    assert_equal @schema.decode(2, [5, 0, 0]), { "v_float" => 0.0 }
-    assert_equal @schema.decode(2, [6, 0, 0]), { "v_string" => "" }
-    assert_equal @schema.decode(2, [7, 100, 0]), { "v_enum" => "FOO" }
-    assert_equal @schema.decode(2, [8, 0, 0, 0]), { "v_struct" => { "v_enum" => [], "v_message" => {} } }
-    assert_equal @schema.decode(2, [9, 0, 0]), { "v_message" => {} }
+    assert_equal({ "v_enum" => ["FOO", "BAR"], "v_message" => { "v_string" => "🍕" } }, @schema.decode_struct(Kiwi::ByteBuffer.new([2, 100, 200, 1, 6, 240, 159, 141, 149, 0, 0])))
+    assert_equal({ "v_bool" => false }, @schema.decode_message(Kiwi::ByteBuffer.new([1, 0, 0])))
+    assert_equal({ "v_bool" => true }, @schema.decode_message(Kiwi::ByteBuffer.new([1, 1, 0])))
+    assert_equal({ "v_byte" => 255 }, @schema.decode_message(Kiwi::ByteBuffer.new([2, 255, 0])))
+    assert_equal({ "v_int" => -1 }, @schema.decode_message(Kiwi::ByteBuffer.new([3, 1, 0])))
+    assert_equal({ "v_uint" => 1 }, @schema.decode_message(Kiwi::ByteBuffer.new([4, 1, 0])))
+    assert_equal({ "v_float" => 0.0 }, @schema.decode_message(Kiwi::ByteBuffer.new([5, 0, 0])))
+    assert_equal({ "v_string" => "" }, @schema.decode_message(Kiwi::ByteBuffer.new([6, 0, 0])))
+    assert_equal({ "v_enum" => "FOO" }, @schema.decode_message(Kiwi::ByteBuffer.new([7, 100, 0])))
+    assert_equal({ "v_struct" => { "v_enum" => [], "v_message" => {} } }, @schema.decode_message(Kiwi::ByteBuffer.new([8, 0, 0, 0])))
+    assert_equal({ "v_message" => {} }, @schema.decode_message(Kiwi::ByteBuffer.new([9, 0, 0])))
   end
 end
