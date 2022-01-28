@@ -6,9 +6,6 @@ module Kiwi
       definitions = {}
       rb = []
 
-      rb << "require 'kiwi/byte_buffer'"
-      rb << ""
-
       schema.definitions.each_with_index do |definition, index|
         definitions[index] = definition
       end
@@ -25,13 +22,13 @@ module Kiwi
           rb << ""
         when Definition::KIND_STRUCT, Definition::KIND_MESSAGE
           rb << "def decode_#{definition.name.downcase}(bb)"
-          rb << "  #{compile_decode(definition, definitions)}"
+          rb << compile_decode(definition, definitions)
           rb << "end"
-          rb << ""
           rb << ""
           rb << "def encode_#{definition.name.downcase}(message, bb = Kiwi::ByteBuffer.new)"
-          rb << "  #{compile_encode(definition, definitions)}"
+          rb << compile_encode(definition, definitions)
           rb << "end"
+          rb << ""
         else
           raise "Invalid definition kind: #{definition.kind}"
         end
@@ -44,14 +41,13 @@ module Kiwi
       lines = []
       indent = "  "
 
-      lines << "result = {}"
+      lines << "  result = {}"
 
       if definition.kind == Definition::KIND_MESSAGE
         lines << "  loop do"
         lines << "    case bb.read_var_uint"
         lines << "    when 0"
         lines << "      return result"
-        lines << ""
         indent = "    "
       end
 
@@ -89,14 +85,14 @@ module Kiwi
 
         if field.is_array
           if field.type_id == Field::TYPE_BYTE
-            lines << indent + "result['#{field.name}'] = bb.read_byte_array"
+            lines << indent + "  result['#{field.name}'] = bb.read_byte_array"
           else
-            lines << indent + "length = bb.read_var_uint"
-            lines << indent + "values = result['#{field.name}'] = Array.new(length)"
-            lines << indent + "length.times { |i| values[i] = #{code} }"
+            lines << indent + "  length = bb.read_var_uint"
+            lines << indent + "  values = result['#{field.name}'] = Array.new(length)"
+            lines << indent + "  length.times { |i| values[i] = #{code} }"
           end
         else
-          lines << indent + "result['#{field.name}'] = #{code}"
+          lines << indent + "  result['#{field.name}'] = #{code}"
         end
       end
 
@@ -173,6 +169,7 @@ module Kiwi
         end
 
         lines << "  end"
+        lines << ""
       end
 
       if definition.kind == Definition::KIND_MESSAGE
