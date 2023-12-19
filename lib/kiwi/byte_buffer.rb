@@ -30,7 +30,7 @@ module Kiwi
       if index + len > data.length
         raise RangeError, "Read bytes out of bounds"
       else
-        value = data[index..(index + len)]
+        value = data[index...(index + len)]
         @index += len
         value
       end
